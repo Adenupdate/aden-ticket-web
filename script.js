@@ -8,7 +8,8 @@ const firebaseConfig = {
     storageBucket: "adenticket-web.firebasestorage.app",
     messagingSenderId: "64334312932",
     appId: "1:64334312932:web:3a37a0bc9d5fe9979343f1",
-    measurementId: "G-BDPWXJ9507"
+    measurementId: "G-BDPWXJ9507",
+    databaseURL: "https://adenticket-web-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 // Initialize Firebase (Compat)
