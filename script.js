@@ -762,10 +762,15 @@ function handleRegister(e) {
     users.push(newUser);
 
     // Sync with Firebase
-    db.ref('users').set(users);
-
-    showToast(t('toast_reg_success'));
-    switchModal('register', 'login');
+    db.ref('users').set(users)
+        .then(() => {
+            showToast(t('toast_reg_success'));
+            switchModal('register', 'login');
+        })
+        .catch(err => {
+            alert("Firebase Save Error: " + err.message + "\n(Please check your Firebase Database Rules!)");
+            console.error(err);
+        });
 }
 
 function handleLineLogin() {
@@ -1447,17 +1452,18 @@ window.updateUserRole = function (userId, newRole) {
         u.role = newRole;
 
         // Push to Firebase
-        db.ref('users').set(users);
-
-        // Update currentUser session if it's the same person
-        if (currentUser && currentUser.id == userId) {
-            currentUser.role = newRole;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            restoreLoginUI();
-            updateHomeUserStatus();
-        }
-
-        showToast(`${t('toast_update_role')} ${u.name} to ${newRole}`);
+        db.ref('users').set(users).then(() => {
+            // Update currentUser session if it's the same person
+            if (currentUser && currentUser.id == userId) {
+                currentUser.role = newRole;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                restoreLoginUI();
+                updateHomeUserStatus();
+            }
+            showToast(`${t('toast_update_role')} ${u.name} to ${newRole}`);
+        }).catch(err => {
+            alert("Firebase Update Error: " + err.message + "\n(Please check your Firebase Database Rules!)");
+        });
     }
 };
 
