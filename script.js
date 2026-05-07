@@ -1848,3 +1848,5 @@ if (localStorage.getItem('viewMode') === 'web') {
         if (btn) btn.innerHTML = '<i class="fas fa-desktop"></i>';
     });
 }
+c o n s o l e . l o g ( ' F i r e b a s e   D B   U R L : ' ,   f i r e b a s e . a p p ( ) . o p t i o n s . d a t a b a s e U R L ) ;  
+ 
