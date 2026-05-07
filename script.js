@@ -43,16 +43,7 @@ let users = [
     { id: 1, name: 'admin', role: 'Developer' }
 ];
 
-// Firebase is the single source of truth for users
-db.ref('users').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data && Array.isArray(data) && data.length > 0) {
-        users = data;
-    } else if (data && !Array.isArray(data)) {
-        users = Object.values(data);
-    }
-    // If Firebase is empty, keep the local default (admin only)
-});
+// Firebase synchronization is handled inside syncDataWithFirebase()
 
 let bookings = [];
 
@@ -519,7 +510,9 @@ function syncDataWithFirebase() {
     db.ref('users').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            users = data;
+            // Ensure users is always a clean array without nulls
+            users = (Array.isArray(data) ? data : Object.values(data)).filter(u => u !== null && u !== undefined);
+            
             // Update current user if their role changed in DB
             if (currentUser) {
                 const updatedMe = users.find(u => u.id == currentUser.id);
