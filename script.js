@@ -1450,6 +1450,9 @@ function renderAdminUsers() {
 window.updateUserRole = function (userId, newRole) {
     const u = users.find(x => x.id == userId);
     if (u) {
+        // Update role locally first!
+        u.role = newRole;
+
         // Push to Firebase
         db.ref('users').set(users);
 
