@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aden_ticket - Concert Ticket Booking</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
+    <meta name="description" content="Welcome to Aden_Ticket's concert ticket queue booking website.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700;900&family=Montserrat:wght@300;400;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK (Compat version for easier integration) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Status Bar Simulation (Only visible in phone mode) -->
+        <div class="status-bar">
+            <span class="time" id="status-time">9:41</span>
+            <div class="status-icons">
+                <i class="fas fa-signal"></i>
+                <i class="fas fa-wifi"></i>
+                <i class="fas fa-battery-full"></i>
+            </div>
+        </div>
+
+        <!-- ===== TOP NAV ===== -->
+        <nav>
+            <a href="#" class="logo" onclick="showSection('home'); return false;">
+                <div class="logo-avatar">
+                    <img src="logo.png" alt="PinkTicket Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                    <div class="logo-fallback-icon"><i class="fas fa-heart"></i></div>
+                </div>
+                <span class="logo-text">Aden_ticket</span>
+            </a>
+            <div class="nav-right">
+                <div id="auth-buttons">
+                    <button class="btn-primary btn-icon" onclick="openModal('login')" title="เข้าสู่ระบบ">
+                        <i class="fas fa-user"></i>
+                    </button>
+                </div>
+                <div id="user-menu" style="display:none; align-items:center; gap:8px;">
+                    <img id="user-avatar" src="" style="width:32px;height:32px;border-radius:50%;display:none;border:1.5px solid var(--pink-300);object-fit:cover;">
+                    <span id="user-display-name" class="user-name-badge"></span>
+                    <button class="btn-primary btn-icon btn-danger" onclick="logout()" title="ออกจากระบบ">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+                <div class="lang-switcher">
+                    <button id="lang-th" class="lang-btn active" onclick="setLanguage('th')">TH</button>
+                    <button id="lang-en" class="lang-btn" onclick="setLanguage('en')">EN</button>
+                </div>
+                <button class="btn-mode-toggle" id="mode-toggle" onclick="toggleViewMode()" title="สลับโหมดมุมมอง">
+                    <i class="fas fa-mobile-alt"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- ===== CONTENT ===== -->
+        <main id="main-scroll">
+            <!-- Announcement Banner -->
+            <div id="announcement-banner" class="announcement-bar" style="display:none;">
+                <i class="fas fa-bullhorn announcement-icon"></i>
+                <div class="marquee-wrapper">
+                    <div class="marquee-track">
+                        <span id="banner-text">ยินดีต้อนรับสู่ Aden_ticket 💖</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Home -->
+            <section id="home" class="section active">
+                <!-- Role Display Area (Red Box in Image) -->
+                <div id="home-user-status" style="display:none; padding: 10px 20px; align-items: center; gap: 8px;">
+                    <!-- Badge will be injected here -->
+                </div>
+
+                <div class="hero">
+                    <div class="hero-logo-main">
+                        <img src="logo.png" alt="Aden_ticket Logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+                    </div>
+                    <h1>Aden_ticket</h1>
+                    <p>Welcome to Aden_Ticket’s concert ticket queue booking website.</p>
+                </div>
+
+                <!-- Quick Menu Grid -->
+                <div class="quick-menu">
+                    <div class="menu-card" onclick="switchBottomNav('events')">
+                        <div class="menu-icon"><i class="fas fa-calendar-check"></i></div>
+                        <span data-i18n="menu_book">จองคิว</span>
+                    </div>
+                    <div class="menu-card" onclick="switchBottomNav('profile')">
+                        <div class="menu-icon"><i class="fas fa-heart"></i></div>
+                        <span data-i18n="menu_tickets">บัตรของฉัน</span>
+                    </div>
+                    <div class="menu-card" onclick="showReviewInfo()">
+                        <div class="menu-icon"><i class="fas fa-heart"></i></div>
+                        <span data-i18n="menu_reviews">รีวิว</span>
+                    </div>
+                    <div class="menu-card" onclick="showHowToBook()">
+                        <div class="menu-icon"><i class="fas fa-book-open"></i></div>
+                        <span data-i18n="menu_howto">วิธีการจอง</span>
+                    </div>
+                </div>
+
+                <!-- Booking Details Section -->
+                <div class="info-section">
+                    <div class="info-header">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span data-i18n="info_header">รายละเอียดการจองคิวกดบัตร</span>
+                    </div>
+                    
+                    <div class="info-card">
+                        <div class="info-card-icon"><i class="fab fa-twitter"></i></div>
+                        <div class="info-card-content">
+                            <h3 data-i18n="info_title1">วิธีการจองคิว</h3>
+                            <p data-i18n="info_desc1">ทักข้อความมาทางทวิตร้านโดยตรง ส่งรายละเอียดงานที่จะฝากกด เช่น ผังคอน วันที่จำหน่ายบัตร และเว็บไซต์ที่ใช้จำหน่ายบัตร</p>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-card-icon"><i class="fas fa-handshake-slash"></i></div>
+                        <div class="info-card-content">
+                            <h3 data-i18n="info_title2">กรณีลูกค้ากดบัตรชนกับทางร้าน</h3>
+                            <p data-i18n="info_desc2">หากลูกค้ากดบัตรได้เองเช่นกัน ลูกค้าต้องรีบแจ้งทางร้านก่อนที่ทางร้านจะทักมาคอนเฟิร์มว่ากดบัตรได้แล้ว หากแจ้งก่อนทางร้านจะไม่เก็บเงินค่ากด</p>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="info-card-content">
+                            <h3 data-i18n="info_title3">หากทางร้านกดได้แล้วลูกค้าไม่รับ</h3>
+                            <p data-i18n="info_desc3">หากทางร้านทำการกดบัตรได้แล้วลูกค้าไม่รับบัตรที่ทางร้านกดได้ ลูกค้าต้องจ่ายค่ากดบัตรเต็มจำนวนให้ทางร้านเช่นเดิม เนื่องจากถือว่าทางร้านได้ทำหน้าที่กดบัตรเสร็จสิ้นแล้ว</p>
+                        </div>
+                    </div>
+
+                    <!-- Contact Card -->
+                    <a href="https://x.com/Aden_ticket" target="_blank" style="text-decoration: none; display: block; margin-top: 20px;">
+                        <div class="info-card" style="border-color: var(--pink-400); background: linear-gradient(135deg, white, var(--pink-100)); border-width: 2px;">
+                            <div class="info-card-icon" style="background: #000; display: flex; align-items: center; justify-content: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
+                                    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.486 3.24H4.298l13.31 17.41z"/>
+                                </svg>
+                            </div>
+                            <div class="info-card-content">
+                                <h3 style="color: #000;" data-i18n="contact_title">ช่องทางการติดต่อหลัก</h3>
+                                <p data-i18n="contact_desc">สอบถามรายละเอียดเพิ่มเติมได้ที่ X (Twitter) @Aden_ticket</p>
+                            </div>
+                            <div style="margin-left: auto; color: var(--pink-500);">
+                                <i class="fas fa-external-link-alt"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+
+
+                <!-- Footer -->
+                <footer style="text-align: center; padding: 40px 20px 20px; color: var(--text-muted); font-size: 0.75rem; border-top: 1px solid var(--pink-100); margin-top: 40px;">
+                    <p>© 2026 Aden ticket. All rights reserved.</p>
+                </footer>
+            </section>
+
+            <!-- Events -->
+            <section id="events" class="section">
+                <div class="section-header">
+                    <h2 data-i18n="all_events_title">คอนเสิร์ตทั้งหมด</h2>
+                </div>
+                <div class="concert-grid" id="all-events-list"></div>
+            </section>
+
+            <!-- Profile -->
+            <section id="profile" class="section">
+                <div class="section-header">
+                    <h2 data-i18n="my_tickets_title">💖 บัตรของฉัน</h2>
+                </div>
+                <div id="my-tickets-list">
+                    <div class="empty-state">
+                        <i class="fas fa-ticket-alt"></i>
+                        <p data-i18n="empty_no_booking">คุณยังไม่มีการจองบัตร</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin -->
+            <section id="admin" class="section">
+                <div class="section-header">
+                    <h2 data-i18n="admin_manage_title">⚙️ จัดการระบบ</h2>
+                </div>
+
+                <!-- Website Status Management -->
+                <div class="glass" style="margin-bottom: 25px; padding: 18px; border-radius: 20px; border: 1.5px solid var(--pink-200); background: rgba(255, 255, 255, 0.6);">
+                    <div style="display:flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 style="font-size: 1rem; color: var(--pink-600); margin-bottom: 4px;" data-i18n="site_status_label"><i class="fas fa-signal"></i> สถานะเว็บไซต์ (Website Status)</h3>
+                            <p id="site-status-text" style="font-size: 0.8rem; color: #10b981; font-weight: 700;" data-i18n="site_online">● เปิดให้บริการปกติ (Online)</p>
+                        </div>
+                        <div class="status-toggle-wrap">
+                            <select id="admin-site-status" class="status-select" onchange="toggleSiteStatus(this.value)" style="width: 140px; padding: 10px; border-radius: 12px; border: 1.5px solid var(--pink-200); outline: none; cursor: pointer; font-weight: 600;">
+                                <option value="online">🟢 Online</option>
+                                <option value="maintenance">🔴 Maintenance</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Tabs -->
+                <div class="admin-tabs">
+                    <button class="admin-tab-btn active" onclick="switchAdminTab('events')" data-i18n="admin_tab_events">จัดการงาน</button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('bookings')" data-i18n="admin_tab_bookings">จัดการการจอง</button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('users')" data-i18n="admin_tab_users">จัดการผู้ใช้</button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('announcement')" data-i18n="admin_tab_announce">ประกาศ</button>
+                </div>
+                <!-- Tab: Events -->
+                <div id="admin-tab-events" class="admin-tab-content active">
+                    <div class="admin-stats">
+
+                    <div class="stat-card glass">
+                        <div class="stat-val" id="stat-total-tickets">0</div>
+                        <div class="stat-label" data-i18n="stat_booked">บัตรที่จอง</div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-val" id="stat-active-events">0</div>
+                        <div class="stat-label" data-i18n="stat_concerts">คอนเสิร์ต</div>
+                    </div>
+                </div>
+                <div class="glass table-wrap" style="margin-top:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 style="margin:0;" data-i18n="admin_events_header">📅 จัดการงานคอนเสิร์ต</h3>
+                        <button class="btn-primary" style="padding:6px 12px; font-size:0.8rem;" onclick="openAddEventModal()">
+                            <i class="fas fa-plus"></i> <span data-i18n="admin_add_event">เพิ่มงาน</span>
+                        </button>
+                    </div>
+                    <table id="admin-events-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="table_concert">งานคอนเสิร์ต</th>
+                                <th data-i18n="table_price">ราคา</th>
+                                <th data-i18n="table_qty">จำนวน</th>
+                                <th data-i18n="table_status">สถานะ</th>
+                                <th data-i18n="table_manage">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                </div>
+
+                <!-- Tab: Bookings -->
+                <div id="admin-tab-bookings" class="admin-tab-content">
+
+                    <div class="glass table-wrap" style="margin-top:20px;">
+                        <h3 style="margin-bottom:15px;" data-i18n="admin_bookings_header">📊 จัดการรายการจองลูกค้า</h3>
+                        <table id="admin-bookings-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="table_customer">ลูกค้า</th>
+                                    <th data-i18n="table_job">งาน</th>
+                                    <th data-i18n="table_zone_qty">โซน/จำนวน</th>
+                                    <th data-i18n="table_status">สถานะ</th>
+                                    <th data-i18n="table_manage">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Users -->
+                <div id="admin-tab-users" class="admin-tab-content">
+                    <div class="glass table-wrap" style="margin-top:20px;">
+                        <h3 style="margin-bottom:15px;" data-i18n="admin_users_header">👥 จัดการสมาชิกและยศ</h3>
+                        <table id="admin-users-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="table_userid">User ID</th>
+                                    <th data-i18n="table_name">ชื่อ</th>
+                                    <th data-i18n="table_role">ยศ / ตำแหน่ง</th>
+                                    <th data-i18n="table_manage">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-list"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Announcement -->
+                <div id="admin-tab-announcement" class="admin-tab-content">
+                    <div class="glass" style="margin-top:20px; padding:24px; border-radius:20px; border:1.5px solid var(--pink-200);">
+                        <h3 style="margin-bottom:20px; color:var(--pink-600); font-size:1rem;"><i class="fas fa-bullhorn"></i> <span data-i18n="admin_announce_header">จัดการประกาศด่วน</span></h3>
+
+                        <!-- Preview -->
+                        <div id="announce-preview" style="display:none; background: linear-gradient(135deg, var(--pink-500), var(--pink-600)); border-radius:16px; padding:14px 20px; margin-bottom:20px; color:white; display:flex; align-items:center; gap:12px; font-weight:600; font-size:0.9rem;">
+                            <i class="fas fa-bullhorn" style="font-size:1.1rem; opacity:0.9;"></i>
+                            <span id="announce-preview-text" data-i18n="announce_preview">ตัวอย่างประกาศ</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-pen"></i> <span data-i18n="announce_text_label">ข้อความประกาศ</span></label>
+                            <input type="text" id="announce-text-input" placeholder="เช่น ระบบจองคิวเปิดแล้ว! 🎉" oninput="previewAnnouncement()">
+                        </div>
+
+                        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                            <div class="form-group">
+                                <label><i class="fas fa-palette"></i> <span data-i18n="announce_bg_label">สีพื้นหลัง</span></label>
+                                <select id="announce-color-select" onchange="previewAnnouncement()">
+                                    <option value="gradient-pink">🌸 ชมพูไล่สี (Default)</option>
+                                    <option value="gradient-purple">💜 ม่วงไล่สี</option>
+                                    <option value="gradient-blue">💙 น้ำเงินไล่สี</option>
+                                    <option value="gradient-green">💚 เขียวไล่สี</option>
+                                    <option value="gradient-orange">🧡 ส้มไล่สี</option>
+                                    <option value="gradient-red">❤️ แดงไล่สี</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-toggle-on"></i> <span data-i18n="announce_visible_label">สถานะการแสดง</span></label>
+                                <select id="announce-visible-select">
+                                    <option value="show">👁️ แสดงประกาศ</option>
+                                    <option value="hide">🙈 ซ่อนประกาศ</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:12px; margin-top:8px;">
+                            <button class="btn-primary" style="flex:1; padding:13px; font-size:0.95rem;" onclick="saveAnnouncement()">
+                                <i class="fas fa-save"></i> <span data-i18n="announce_save_btn">บันทึกและแสดงประกาศ</span>
+                            </button>
+                            <button onclick="clearAnnouncement()" style="padding:13px 18px; border-radius:50px; border:1.5px solid var(--pink-200); background:white; color:var(--text-muted); cursor:pointer; font-family:inherit; font-weight:600; font-size:0.9rem; transition:all 0.2s;">
+                                <i class="fas fa-times"></i> <span data-i18n="announce_clear_btn">ล้าง</span>
+                            </button>
+                        </div>
+
+                        <!-- Current Status -->
+                        <div id="announce-current-status" style="margin-top:20px; padding:14px; background:var(--pink-100); border-radius:14px; border:1px solid var(--pink-200); font-size:0.85rem; color:var(--text-muted);">
+                            <i class="fas fa-info-circle" style="color:var(--pink-400);"></i>
+                            <span id="announce-status-text" data-i18n="announce_empty">ยังไม่มีประกาศที่ตั้งค่าไว้</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+
+        </main>
+
+        <!-- ===== BOTTOM NAV ===== -->
+        <div class="bottom-nav">
+            <a class="bottom-nav-item active" id="bnav-home" onclick="switchBottomNav('home')">
+                <i class="fas fa-home"></i>
+                <span data-i18n="bnav_home">หน้าแรก</span>
+            </a>
+            <a class="bottom-nav-item" id="bnav-events" onclick="switchBottomNav('events')">
+                <i class="fas fa-ticket-alt"></i>
+                <span data-i18n="bnav_book">จองบัตร</span>
+            </a>
+            <a class="bottom-nav-item" id="bnav-profile" style="display:none;" onclick="switchBottomNav('profile')">
+                <i class="fas fa-heart"></i>
+                <span data-i18n="bnav_profile">ของฉัน</span>
+            </a>
+            <a class="bottom-nav-item" id="bnav-admin" style="display:none;" onclick="switchBottomNav('admin')">
+                <i class="fas fa-cog"></i>
+                <span data-i18n="bnav_admin">แอดมิน</span>
+            </a>
+        </div>
+
+    </div><!-- end app-container -->
+
+    <!-- ===== MODALS (outside app-container to center on full screen) ===== -->
+
+    <!-- Login -->
+    <div id="login-modal" class="modal" onclick="handleModalBgClick(event,'login')">
+        <div class="modal-content glass">
+            <button class="close-modal" onclick="closeModal('login')"><i class="fas fa-times"></i></button>
+            <div class="modal-logo">
+                <img src="logo.png" alt="logo" onerror="this.style.display='none'">
+            </div>
+            <h2 data-i18n="login_title">เข้าสู่ระบบ</h2>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> <span data-i18n="login_id_label">ชื่อผู้ใช้งาน (ID)</span></label>
+                    <input type="text" id="login-email" data-i18n-placeholder="login_id_ph" placeholder="กรอก ID ของคุณ" required>
+                </div>
+                <button type="submit" class="btn-primary btn-full" data-i18n="login_btn">เข้าสู่ระบบ</button>
+                <div class="modal-links">
+                    <span data-i18n="login_no_id">ยังไม่มี ID?</span> <a onclick="switchModal('login','register')" data-i18n="login_reg_link">สมัครสมาชิก</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register -->
+    <div id="register-modal" class="modal" onclick="handleModalBgClick(event,'register')">
+        <div class="modal-content glass">
+            <button class="close-modal" onclick="closeModal('register')"><i class="fas fa-times"></i></button>
+            <div class="modal-logo">
+                <img src="logo.png" alt="logo" onerror="this.style.display='none'">
+            </div>
+            <h2 data-i18n="reg_title">สมัครสมาชิก</h2>
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> <span data-i18n="reg_id_label">กำหนด ID ของคุณ</span></label>
+                    <input type="text" id="reg-name" data-i18n-placeholder="reg_id_ph" placeholder="เช่น Pinky123" required>
+                </div>
+                <button type="submit" class="btn-primary btn-full" data-i18n="reg_btn">ยืนยันสมัครสมาชิก</button>
+                <div class="modal-links">
+                    <span data-i18n="reg_have_id">มี ID แล้ว?</span> <a onclick="switchModal('register','login')" data-i18n="reg_login_link">เข้าสู่ระบบ</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+    <!-- Booking -->
+    <div id="booking-modal" class="modal" onclick="handleModalBgClick(event,'booking')">
+        <div class="modal-content glass" style="max-width: 550px;">
+            <button class="close-modal" onclick="closeModal('booking')"><i class="fas fa-times"></i></button>
+            
+            <!-- Compact Booking Header (Thumbnail Style) -->
+            <div id="booking-modal-header" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding: 12px; background: rgba(255, 230, 235, 0.5); border-radius: 20px; border: 1px solid var(--pink-200);">
+                <img id="booking-concert-img" src="" alt="Thumbnail" style="width: 120px; height: 170px; object-fit: contain; border-radius: 12px; background: #fff; box-shadow: 0 5px 15px rgba(255, 77, 141, 0.15); border: 1px solid var(--pink-100);">
+                <div style="text-align: left; flex: 1;">
+                    <h2 id="booking-title" style="margin-bottom: 2px; font-size: 1.1rem; color: var(--text-main); font-weight: 800;" data-i18n="booking_modal_title">แบบฟอร์มจองคิว</h2>
+                    <div id="booking-concert-prices" style="font-size: 0.85rem; font-weight: 700; color: var(--pink-600);"></div>
+                </div>
+            </div>
+
+            <div id="booking-details" class="booking-details-info" style="margin-bottom: 15px; font-size: 0.8rem; display: none;"></div>
+            
+            <form id="booking-form" onsubmit="handleBooking(event)">
+                <!-- Section 1 -->
+                <div style="font-size:0.75rem; color:var(--pink-600); font-weight:800; margin-bottom:10px; border-bottom:1px solid var(--pink-200); padding-bottom:4px;" data-i18n="booking_section1">1. ข้อมูลแพลตฟอร์ม & ล็อกอิน</div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label data-i18n="booking_platform_label">แพลตฟอร์ม (Platform)</label>
+                        <select id="booking-platform" onchange="toggleOtherPlatform(this.value)" required>
+                            <option value="" data-i18n="booking_platform_ph">— เลือกเว็บที่ใช้กด —</option>
+                            <option value="Thaiticket Major">Thaiticket Major</option>
+                            <option value="Allticket">Allticket</option>
+                            <option value="The Concert">The Concert</option>
+                            <option value="Event pop">Event pop</option>
+                            <option value="Ticket Melon">Ticket Melon</option>
+                            <option value="Other">อื่นๆ (ระบุเอง)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="other-platform-wrap" style="display:none;">
+                        <label data-i18n="booking_other_platform">ระบุแพลตฟอร์ม</label>
+                        <input type="text" id="booking-platform-other" data-i18n-placeholder="booking_other_ph" placeholder="ระบุชื่อเว็บไซต์">
+                    </div>
+                </div>
+                
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label data-i18n="booking_user_label">ชื่อผู้ใช้ / ไอดี (User)</label>
+                        <input type="text" id="booking-user" data-i18n-placeholder="booking_user_ph" placeholder="ชื่อผู้ใช้งาน / ไอดี" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="booking_pass_label">รหัสผ่าน (Password)</label>
+                        <input type="text" id="booking-pass" data-i18n-placeholder="booking_pass_ph" placeholder="รหัสผ่าน" required>
+                    </div>
+                </div>
+
+                <!-- Section 2 -->
+                <div style="font-size:0.75rem; color:var(--pink-600); font-weight:800; margin-top:15px; margin-bottom:10px; border-bottom:1px solid var(--pink-200); padding-bottom:4px;" data-i18n="booking_section2">2. ข้อมูลติดต่อ & สมาชิก</div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label data-i18n="booking_email_label">อีเมล (Email)</label>
+                        <input type="email" id="booking-email" data-i18n-placeholder="booking_email_ph" placeholder="example@mail.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="booking_phone_label">เบอร์โทรศัพท์ (Phone)</label>
+                        <input type="tel" id="booking-phone" data-i18n-placeholder="booking_phone_ph" placeholder="08x-xxxxxxx" required>
+                    </div>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>X (Twitter)</label>
+                        <input type="text" id="booking-twitter" data-i18n-placeholder="booking_twitter_ph" placeholder="@ชื่อของคุณ" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="member_id">Member ID (ถ้าไม่ใช้ใส่ -)</label>
+                        <input type="text" id="booking-member" data-i18n-placeholder="member_id_ph" placeholder="Member ID (If any)" required>
+                    </div>
+                </div>
+
+                <!-- Section 3 -->
+                <div style="font-size:0.75rem; color:var(--pink-600); font-weight:800; margin-top:15px; margin-bottom:10px; border-bottom:1px solid var(--pink-200); padding-bottom:4px;" data-i18n="booking_section3">3. รายละเอียดรอบการแสดง & โซน</div>
+                <div class="form-group">
+                    <label data-i18n="booking_showdate_label">รอบการแสดง (Select Show Date)</label>
+                    <input type="date" id="booking-showdate" required onchange="updateThaiDateDisplay(this.value)" style="width:100%; border-radius:14px; border:1px solid var(--pink-200); padding:10px; font-size:0.95rem; font-family: 'Inter', sans-serif; color:var(--text-main); background:white; outline:none;">
+                    <div id="booking-date-thai" style="margin-top:8px; font-size:0.85rem; color:var(--pink-500); font-weight:700; display:none; align-items:center; gap:5px;">
+                        📅 <span id="thai-date-text"></span>
+                    </div>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label data-i18n="booking_zone1_label">โซนที่ต้องการ (ลำดับ 1)</label>
+                        <input type="text" id="booking-zone-1" data-i18n-placeholder="booking_zone1_ph" placeholder="เช่น AL, A1" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="booking_zone2_label">โซนสำรอง (ลำดับ 2)</label>
+                        <input type="text" id="booking-zone-2" data-i18n-placeholder="booking_zone2_ph" placeholder="เช่น BL, B2" required>
+                    </div>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label data-i18n="booking_price1_label">ราคาบัตร (ลำดับ 1)</label>
+                        <input type="text" id="booking-price-1" data-i18n-placeholder="booking_price1_ph" placeholder="เช่น 6500 หรือ 1000 / 1900" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="booking_price2_label">ราคาบัตรสำรอง (ลำดับ 2)</label>
+                        <input type="text" id="booking-price-2" data-i18n-placeholder="booking_price2_ph" placeholder="เช่น 5500 หรือ 1000 / 1900" required>
+                    </div>
+                </div>
+
+                <!-- Section 4 -->
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label data-i18n="booking_qty_label">จำนวนบัตร</label>
+                        <select id="booking-quantity" required>
+                            <option value="1" data-i18n="booking_qty_1">1 ใบ</option>
+                            <option value="2" data-i18n="booking_qty_2">2 ใบ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="booking_payment_label">วิธีการชำระเงิน (Payment)</label>
+                        <select id="booking-payment" required>
+                            <option value="" data-i18n="booking_payment_ph">— เลือกวิธีจ่ายเงิน —</option>
+                            <option value="QR Code">QR Code</option>
+                            <option value="Credit / Debit Card">Credit / Debit Card (แจ้งใน DM)</option>
+                            <option value="7-Eleven">7-Eleven</option>
+                            <option value="True Money Wallet">True Money Wallet</option>
+                            <option value="ฝากร้านจ่าย">ฝากร้านจ่าย (แจ้งใน DM)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label data-i18n="booking_name_label">ชื่อหน้าบัตร (ถ้าไม่ใช้ใส่ -)</label>
+                        <input type="text" id="booking-name-t" data-i18n-placeholder="booking_name_ph" placeholder="ชื่อจริง" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="booking_surname_label">นามสกุลหน้าบัตร (ถ้าไม่ใช้ใส่ -)</label>
+                        <input type="text" id="booking-surname-t" data-i18n-placeholder="booking_surname_ph" placeholder="นามสกุล" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="booking_note_label">หมายเหตุ / รายละเอียดเพิ่มเติม</label>
+                    <textarea id="booking-note" rows="2" data-i18n-placeholder="booking_note_ph" placeholder="ระบุเพิ่มเติม (ถ้ามี)..." style="width:100%; border-radius:12px; border:1px solid var(--pink-200); padding:10px; font-size:0.85rem; font-family:inherit;"></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full" style="margin-top:10px;" data-i18n="booking_submit_btn">🚀 ยืนยันการส่งข้อมูลจอง</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Event -->
+    <div id="event-modal" class="modal" onclick="handleModalBgClick(event,'event')">
+        <div class="modal-content glass">
+            <button class="close-modal" onclick="closeModal('event')"><i class="fas fa-times"></i></button>
+            <h2 id="event-modal-title">เพิ่มคอนเสิร์ต</h2>
+            <form id="event-form" onsubmit="handleEventSubmit(event)">
+                <div class="form-group">
+                    <label>ชื่องานคอนเสิร์ต</label>
+                    <input type="text" id="event-title" placeholder="ชื่อคอนเสิร์ต..." required>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>ราคาเริ่มต้น (฿)</label>
+                        <input type="text" id="event-price" placeholder="2500 หรือ 1000 / 1900" required>
+                    </div>
+                    <div class="form-group">
+                        <label>จำนวนบัตร</label>
+                        <input type="number" id="event-quantity" placeholder="100" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>รูปภาพคอนเสิร์ต</label>
+                    <div style="display:flex; gap:10px; margin-bottom:8px;">
+                        <input type="text" id="event-img" placeholder="ลิงก์รูปภาพ (URL) หรือเลือกไฟล์..." required style="flex:1;">
+                        <button type="button" class="btn-primary" onclick="document.getElementById('event-img-file').click()" style="padding:0 15px; border-radius:12px; font-size:0.8rem; width:auto; height:45px;">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                    </div>
+                    <input type="file" id="event-img-file" accept="image/*" style="display:none;" onchange="handleFileSelect(this, 'event-img')">
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>สถานะการจอง</label>
+                        <select id="event-status">
+                            <option value="open">🟢 เปิดจองแล้ว</option>
+                            <option value="coming">🟡 เร็วๆนี้</option>
+                            <option value="">⚪ ไม่แสดงสถานะ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>แสดงที่หน้าแรก (แนะนำ)</label>
+                        <select id="event-recommended">
+                            <option value="no">❌ ไม่แนะนำ (แสดงหน้ารวม)</option>
+                            <option value="yes">⭐ แนะนำ (แสดงหน้าแรก)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>วันที่จัดงาน</label>
+                        <input type="text" id="event-date" placeholder="15 มิ.ย. 2024" required>
+                    </div>
+                    <div class="form-group">
+                        <label>สถานที่</label>
+                        <input type="text" id="event-venue" placeholder="Impact Arena" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary btn-full">💾 บันทึกข้อมูล</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin View/Edit Booking Details -->
+    <div id="admin-booking-modal" class="modal" onclick="handleModalBgClick(event,'admin-booking')">
+        <div class="modal-content glass" style="max-width: 650px;">
+            <button class="close-modal" onclick="closeModal('admin-booking')"><i class="fas fa-times"></i></button>
+            <h2 style="margin-bottom: 20px;">รายละเอียดการจอง (แอดมิน)</h2>
+            <form id="admin-booking-form" onsubmit="handleAdminBookingUpdate(event)">
+                <input type="hidden" id="edit-booking-id">
+
+                <!-- Concert Header Info -->
+                <div id="edit-bk-concert-info" style="display:flex; align-items:center; gap:15px; background:rgba(255,255,255,0.5); padding:12px; border-radius:20px; margin-bottom:20px; border:1px solid var(--pink-200);">
+                    <img id="edit-bk-concert-img" src="" style="width:120px; height:170px; border-radius:12px; object-fit:contain; background:#fff; box-shadow: 0 8px 20px rgba(255, 77, 141, 0.15); border:1px solid var(--pink-100);" onerror="this.src='https://via.placeholder.com/120x170'">
+                    <div>
+                        <div style="font-size:0.7rem; color:#999; font-weight:bold; text-transform:uppercase;">งานคอนเสิร์ต</div>
+                        <div id="edit-bk-concert-title" style="font-family: 'Inter', sans-serif; font-weight:800; color:var(--pink-600); font-size:1.1rem; text-shadow: 0 0 15px rgba(255, 133, 141, 0.4), 0 0 5px rgba(255, 133, 141, 0.2);"></div>
+                    </div>
+                </div>
+                
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                    <div class="form-group">
+                        <label>ชื่อลูกค้า</label>
+                        <input type="text" id="edit-bk-name" readonly style="background:#f0f0f0;">
+                    </div>
+                    <div class="form-group">
+                        <label>สถานะการจอง</label>
+                        <select id="edit-bk-status" style="border:2px solid var(--pink-400); font-weight:bold;">
+                            <option value="Pending">⏳ รอการยืนยัน</option>
+                            <option value="Confirmed">✅ คอนเฟิร์มแล้ว</option>
+                            <option value="Failed">❌ ไม่สำเร็จ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="font-size:0.8rem; color:var(--pink-600); font-weight:800; margin-top:10px; margin-bottom:10px; border-bottom:1px solid var(--pink-200); padding-bottom:4px;">ข้อมูลการล็อกอิน & ติดต่อ</div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>แพลตฟอร์ม</label>
+                        <input type="text" id="edit-bk-platform">
+                    </div>
+                    <div class="form-group">
+                        <label>User / ID</label>
+                        <input type="text" id="edit-bk-user">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="text" id="edit-bk-pass">
+                    </div>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>อีเมล</label>
+                        <input type="email" id="edit-bk-email">
+                    </div>
+                    <div class="form-group">
+                        <label>เบอร์โทรศัพท์</label>
+                        <input type="text" id="edit-bk-phone">
+                    </div>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>X (Twitter)</label>
+                        <input type="text" id="edit-bk-twitter">
+                    </div>
+                    <div class="form-group">
+                        <label>เลขเมมเบอร์</label>
+                        <input type="text" id="edit-bk-member">
+                    </div>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>รอบการแสดง (Date)</label>
+                        <input type="text" id="edit-bk-showdate" onchange="updateAdminThaiDate(this.value)">
+                        <div id="edit-bk-date-thai" style="margin-top:8px; font-size:0.85rem; color:var(--pink-500); font-weight:700; display:none; align-items:center; gap:5px;">
+                            📅 <span id="edit-thai-date-text"></span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>การชำระเงิน (Payment)</label>
+                        <input type="text" id="edit-bk-payment">
+                    </div>
+                </div>
+
+                <div style="font-size:0.8rem; color:var(--pink-600); font-weight:800; margin-top:15px; margin-bottom:10px; border-bottom:1px solid var(--pink-200); padding-bottom:4px;">รายละเอียดบัตร</div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>โซน 1</label>
+                        <input type="text" id="edit-bk-zone1">
+                    </div>
+                    <div class="form-group">
+                        <label>ราคา 1</label>
+                        <input type="text" id="edit-bk-price1">
+                    </div>
+                    <div class="form-group">
+                        <label>จำนวน</label>
+                        <input type="number" id="edit-bk-qty">
+                    </div>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>โซนสำรอง (2)</label>
+                        <input type="text" id="edit-bk-zone2">
+                    </div>
+                    <div class="form-group">
+                        <label>ราคาสำรอง (2)</label>
+                        <input type="text" id="edit-bk-price2">
+                    </div>
+                </div>
+
+                <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label>ชื่อหน้าบัตร</label>
+                        <input type="text" id="edit-bk-name-t">
+                    </div>
+                    <div class="form-group">
+                        <label>นามสกุลหน้าบัตร</label>
+                        <input type="text" id="edit-bk-surname-t">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>หมายเหตุ</label>
+                    <textarea id="edit-bk-note" rows="2"></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full" style="margin-top:15px;">💾 บันทึกการแก้ไขข้อมูลลูกค้า</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Maintenance Overlay -->
+    <div id="maintenance-overlay" class="maintenance-layer">
+        <div class="maintenance-box glass">
+            <div class="maintenance-icon" onclick="handleSecretAdminClick()"><i class="fas fa-heart"></i></div>
+            <h2 data-i18n="maint_title">ขออภัยในความไม่สะดวก</h2>
+            <p data-i18n="maint_desc">ขณะนี้เว็บปิดปรับปรุง จะกลับมาเปิดใช้งานโดยเร็วที่สุด ขอบคุณค่ะ</p>
+            <div class="maintenance-footer">Aden_ticket Official</div>
+        </div>
+    </div>
+
+
+    <script src="script.js"></script>
+</body>
+</html>

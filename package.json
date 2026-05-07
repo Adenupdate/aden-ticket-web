@@ -1,0 +1,13 @@
+{
+  "name": "pink-concert-booking",
+  "version": "1.0.0",
+  "description": "Cute Pink Concert Ticket Booking Website",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx -y serve .",
+    "dev": "npx -y serve ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
